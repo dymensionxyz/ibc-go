@@ -26,7 +26,6 @@ type Keeper struct {
 	stakingKeeper types.StakingKeeper
 	upgradeKeeper types.UpgradeKeeper
 	selfClient    exported.SelfClient
-	clientHooks   exported.ClientHooks
 }
 
 // NewKeeper creates a new NewKeeper instance
@@ -36,8 +35,7 @@ func NewKeeper(
 	paramSpace paramtypes.Subspace,
 	sk types.StakingKeeper,
 	uk types.UpgradeKeeper,
-	selfClient exported.SelfClient,
-	clientHooks exported.ClientHooks) Keeper {
+	selfClient exported.SelfClient) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
@@ -50,7 +48,6 @@ func NewKeeper(
 		stakingKeeper: sk,
 		upgradeKeeper: uk,
 		selfClient:    selfClient,
-		clientHooks:   clientHooks,
 	}
 }
 

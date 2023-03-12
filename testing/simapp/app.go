@@ -348,7 +348,7 @@ func NewSimAppWithConsensusType(
 	}
 	// Create IBC Keeper
 	app.IBCKeeper = ibckeeper.NewKeeperWithSelfClient(
-		appCodec, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), app.StakingKeeper, app.UpgradeKeeper, scopedIBCKeeper, selfClient, nil,
+		appCodec, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), app.StakingKeeper, app.UpgradeKeeper, scopedIBCKeeper, selfClient,
 	)
 
 	app.AuthzKeeper = authzkeeper.NewKeeper(keys[authzkeeper.StoreKey], appCodec, app.BaseApp.MsgServiceRouter())

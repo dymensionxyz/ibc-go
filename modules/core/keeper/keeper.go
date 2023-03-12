@@ -38,22 +38,22 @@ type Keeper struct {
 	Router           *porttypes.Router
 }
 
-//IBCKeeper initialized in wasm code (in wasmd@v0.28.0/x/wasm/keeper/test_common.go:354)
-//We need to maintain backward comptabile interface
+// IBCKeeper initialized in wasm code (in wasmd@v0.28.0/x/wasm/keeper/test_common.go:354)
+// We need to maintain backward comptabile interface
 func NewKeeper(
 	cdc codec.BinaryCodec, key sdk.StoreKey, paramSpace paramtypes.Subspace,
 	stakingKeeper clienttypes.StakingKeeper, upgradeKeeper clienttypes.UpgradeKeeper,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 ) *Keeper {
 	//Using dymint and nil as default. we can panic instead
-	return NewKeeperWithSelfClient(cdc, key, paramSpace, stakingKeeper, upgradeKeeper, scopedKeeper, ibcdmtypes.NewSelfClient(), nil)
+	return NewKeeperWithSelfClient(cdc, key, paramSpace, stakingKeeper, upgradeKeeper, scopedKeeper, ibcdmtypes.NewSelfClient())
 }
 
 // NewKeeper creates a new ibc Keeper
 func NewKeeperWithSelfClient(
 	cdc codec.BinaryCodec, key sdk.StoreKey, paramSpace paramtypes.Subspace,
 	stakingKeeper clienttypes.StakingKeeper, upgradeKeeper clienttypes.UpgradeKeeper,
-	scopedKeeper capabilitykeeper.ScopedKeeper, selfClient exported.SelfClient, clientHooks exported.ClientHooks,
+	scopedKeeper capabilitykeeper.ScopedKeeper, selfClient exported.SelfClient,
 ) *Keeper {
 	// register paramSpace at top level keeper
 	// set KeyTable if it has not already been set
@@ -76,7 +76,7 @@ func NewKeeperWithSelfClient(
 		panic(fmt.Errorf("cannot initialize IBC keeper: empty scoped keeper"))
 	}
 
-	clientKeeper := clientkeeper.NewKeeper(cdc, key, paramSpace, stakingKeeper, upgradeKeeper, selfClient, clientHooks)
+	clientKeeper := clientkeeper.NewKeeper(cdc, key, paramSpace, stakingKeeper, upgradeKeeper, selfClient)
 	connectionKeeper := connectionkeeper.NewKeeper(cdc, key, paramSpace, clientKeeper)
 	portKeeper := portkeeper.NewKeeper(scopedKeeper)
 	channelKeeper := channelkeeper.NewKeeper(cdc, key, clientKeeper, connectionKeeper, portKeeper, scopedKeeper)
