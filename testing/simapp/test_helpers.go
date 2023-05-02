@@ -205,6 +205,7 @@ func SetupWithGenesisAccounts(genAccs []authtypes.GenesisAccount, balances ...ba
 		},
 	)
 
+	app.EndBlock(abci.RequestEndBlock{Height: app.LastBlockHeight()})
 	app.Commit()
 	app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{Height: app.LastBlockHeight() + 1}})
 
