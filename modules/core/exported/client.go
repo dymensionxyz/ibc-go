@@ -46,7 +46,7 @@ type ClientState interface {
 	proto.Message
 
 	ClientType() string
-	GetChainID() string
+	// GetChainID() string
 	GetLatestHeight() Height
 	Validate() error
 

@@ -1,7 +1,7 @@
 package dymint
 
 import (
-	"github.com/cosmos/ibc-go/v3/modules/light-clients/01-dymint/types"
+	"github.com/cosmos/ibc-go/v5/modules/light-clients/01-dymint/types"
 )
 
 // Name returns the IBC client name

@@ -15,14 +15,6 @@ const (
 	TxTypeSDKMultiMsg = "sdk_multi_msg"
 )
 
-const (
-	// EncodingProtobuf defines the protocol buffers proto3 encoding format
-	EncodingProtobuf = "proto3"
-
-	// TxTypeSDKMultiMsg defines the multi message transaction type supported by the Cosmos SDK
-	TxTypeSDKMultiMsg = "sdk_multi_msg"
-)
-
 // NewMetadata creates and returns a new ICS27 Metadata instance
 func NewMetadata(version, controllerConnectionID, hostConnectionID, accAddress, encoding, txType string) Metadata {
 	return Metadata{
