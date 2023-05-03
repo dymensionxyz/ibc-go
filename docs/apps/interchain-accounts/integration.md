@@ -117,8 +117,8 @@ app.moduleManager = module.NewManager(
 
 ...
 
-// Add fee middleware to begin blocker logic
-app.moduleManager.SetOrderBeginBlockers(
+// Add Interchain Accounts module InitGenesis logic
+app.mm.SetOrderInitGenesis(
     ...
     icatypes.ModuleName,
     ...

@@ -46,7 +46,6 @@ type ClientState interface {
 	proto.Message
 
 	ClientType() string
-	// GetChainID() string
 	GetLatestHeight() Height
 	Validate() error
 
@@ -205,7 +204,6 @@ type Misbehaviour interface {
 	proto.Message
 
 	ClientType() string
-	GetChainID() string
 	GetClientID() string
 	ValidateBasic() error
 }
@@ -215,7 +213,6 @@ type Header interface {
 	proto.Message
 
 	ClientType() string
-	GetChainID() string
 	GetHeight() Height
 	ValidateBasic() error
 }
@@ -245,6 +242,11 @@ type GenesisMetadata interface {
 	GetValue() []byte
 }
 
+// String returns the string representation of a client status.
+func (s Status) String() string {
+	return string(s)
+}
+
 // SelfClient is an interface to create the chains' self client logic
 type SelfClient interface {
 	ClientType() string
@@ -259,9 +261,4 @@ type SelfClient interface {
 		cdc codec.BinaryCodec,
 		blockHeader []byte,
 	) (ConsensusState, error)
-}
-
-// String returns the string representation of a client status.
-func (s Status) String() string {
-	return string(s)
 }

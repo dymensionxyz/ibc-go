@@ -46,7 +46,7 @@ func (suite *TypesTestSuite) TestGenerateAddress() {
 	addr := types.GenerateAddress(suite.chainA.GetContext(), "test-connection-id", "test-port-id")
 	accAddr, err := sdk.AccAddressFromBech32(addr.String())
 
-	suite.Require().NoError(err, "TestGenerateUniqueAddress failed")
+	suite.Require().NoError(err, "TestGenerateAddress failed")
 	suite.Require().NotEmpty(accAddr)
 }
 

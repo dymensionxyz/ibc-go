@@ -259,6 +259,7 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 		return nil, err
 	}
 
+	//FIXME: refactor this. should be methods of the keeper
 	sc := ibcdtypes.NewSelfClient()
 	return sc.GetSelfConsensusStateFromBlocHeader(k.cdc, blockHeader)
 }

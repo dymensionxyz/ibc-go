@@ -52,19 +52,6 @@ func GenerateAddress(ctx sdk.Context, connectionID, portID string) sdk.AccAddres
 	return sdkaddress.Derive(hostModuleAcc, buf)
 }
 
-// GenerateUniqueAddress returns an sdk.AccAddress derived using a host module account address, host connection ID, the controller portID,
-// the current block app hash, and the current block data hash. The sdk.AccAddress returned is a sub-address of the host module account.
-func GenerateUniqueAddress(ctx sdk.Context, connectionID, portID string) sdk.AccAddress {
-	hostModuleAcc := sdkaddress.Module(ModuleName, []byte(hostAccountsKey))
-	header := ctx.BlockHeader()
-
-	buf := []byte(connectionID + portID)
-	buf = append(buf, header.AppHash...)
-	buf = append(buf, header.DataHash...)
-
-	return sdkaddress.Derive(hostModuleAcc, buf)
-}
-
 // ValidateAccountAddress performs basic validation of interchain account addresses, enforcing constraints
 // on address length and character set
 func ValidateAccountAddress(addr string) error {

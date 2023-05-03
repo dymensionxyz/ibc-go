@@ -177,8 +177,8 @@ connection handhake.
 
 The IBC module also has
 [`BeginBlock`](https://github.com/cosmos/ibc-go/blob/main/modules/core/02-client/abci.go) logic as
-well. This is optional as it is only required if your application uses the localhost
-client to connect two
+well. This is optional as it is only required if your application uses the [localhost
+client](https://github.com/cosmos/ibc/blob/master/spec/client/ics-009-loopback-client) to connect two
 different modules from the same chain.
 
 ::: tip
