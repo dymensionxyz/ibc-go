@@ -1,7 +1,9 @@
 package keeper
 
 import (
+	"context"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -12,15 +14,64 @@ import (
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 	"github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/light"
 
 	"github.com/cosmos/ibc-go/v5/modules/core/02-client/types"
+	commitmenttypes "github.com/cosmos/ibc-go/v5/modules/core/23-commitment/types"
 	host "github.com/cosmos/ibc-go/v5/modules/core/24-host"
 	"github.com/cosmos/ibc-go/v5/modules/core/exported"
-	ibcdtypes "github.com/cosmos/ibc-go/v5/modules/light-clients/01-dymint/types"
+	ibctmtypes "github.com/cosmos/ibc-go/v5/modules/light-clients/07-tendermint/types"
 )
 
 // Keeper represents a type that grants read and write permissions to any client
 // state information
+
+type KeeperI interface {
+	// ClientUnmarshaler interface
+	MustUnmarshalClientState([]byte) exported.ClientState
+	MustUnmarshalConsensusState([]byte) exported.ConsensusState
+
+	// ClientState implements the IBC QueryServer interface
+	ClientState(c context.Context, req *types.QueryClientStateRequest) (*types.QueryClientStateResponse, error)
+	ClientStates(c context.Context, req *types.QueryClientStatesRequest) (*types.QueryClientStatesResponse, error)
+	ConsensusState(c context.Context, req *types.QueryConsensusStateRequest) (*types.QueryConsensusStateResponse, error)
+	ConsensusStates(c context.Context, req *types.QueryConsensusStatesRequest) (*types.QueryConsensusStatesResponse, error)
+	ConsensusStateHeights(c context.Context, req *types.QueryConsensusStateHeightsRequest) (*types.QueryConsensusStateHeightsResponse, error)
+	ClientStatus(c context.Context, req *types.QueryClientStatusRequest) (*types.QueryClientStatusResponse, error)
+	ClientParams(c context.Context, req *types.QueryClientParamsRequest) (*types.QueryClientParamsResponse, error)
+	UpgradedClientState(c context.Context, req *types.QueryUpgradedClientStateRequest) (*types.QueryUpgradedClientStateResponse, error)
+
+	//From genesis.go
+	GetAllGenesisClients(ctx sdk.Context) types.IdentifiedClientStates
+	GetAllClientMetadata(ctx sdk.Context, genClients []types.IdentifiedClientState) ([]types.IdentifiedGenesisMetadata, error)
+	GetAllConsensusStates(ctx sdk.Context) types.ClientsConsensusStates
+	GetParams(ctx sdk.Context) types.Params
+	SetParams(ctx sdk.Context, params types.Params)
+	GetNextClientSequence(ctx sdk.Context) uint64
+	SetAllClientMetadata(ctx sdk.Context, genMetadata []types.IdentifiedGenesisMetadata)
+	SetClientState(ctx sdk.Context, clientID string, clientState exported.ClientState)
+	SetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height, consensusState exported.ConsensusState)
+	SetNextClientSequence(ctx sdk.Context, sequence uint64)
+
+	//msg_server.go
+	CheckMisbehaviourAndUpdateState(ctx sdk.Context, misbehaviour exported.Misbehaviour) error
+	UpgradeClient(ctx sdk.Context, clientID string, upgradedClient exported.ClientState, upgradedConsState exported.ConsensusState, proofUpgradeClient []byte, proofUpgradeConsState []byte) error
+	UpdateClient(ctx sdk.Context, clientID string, header exported.Header) error
+	CreateClient(ctx sdk.Context, clientState exported.ClientState, consensusState exported.ConsensusState) (string, error)
+
+	//abci.go
+	GetUpgradedClient(ctx sdk.Context, planHeight int64) ([]byte, bool)
+	GetUpgradePlan(ctx sdk.Context) (plan upgradetypes.Plan, havePlan bool)
+	SetUpgradedConsensusState(ctx sdk.Context, planHeight int64, bz []byte) error
+	GetClientState(ctx sdk.Context, clientID string) (exported.ClientState, bool)
+	// UpdateClient(ctx sdk.Context, clientID string, header exported.Header) error
+	MustMarshalConsensusState(consensusState exported.ConsensusState) []byte
+
+	//proposal.go
+	ClientUpdateProposal(ctx sdk.Context, p *types.ClientUpdateProposal) error
+	HandleUpgradeProposal(ctx sdk.Context, p *types.UpgradeProposal) error
+}
+
 type Keeper struct {
 	storeKey      storetypes.StoreKey
 	cdc           codec.BinaryCodec
@@ -254,26 +305,77 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrNotFound, "no historical info found at height %d", selfHeight.RevisionHeight)
 	}
 
-	blockHeader, err := histInfo.Header.Marshal()
-	if err != nil {
-		return nil, err
+	consensusState := &ibctmtypes.ConsensusState{
+		Timestamp:          histInfo.Header.Time,
+		Root:               commitmenttypes.NewMerkleRoot(histInfo.Header.GetAppHash()),
+		NextValidatorsHash: histInfo.Header.NextValidatorsHash,
 	}
-
-	//FIXME: refactor this. should be methods of the keeper
-	sc := ibcdtypes.NewSelfClient()
-	return sc.GetSelfConsensusStateFromBlocHeader(k.cdc, blockHeader)
+	return consensusState, nil
 }
 
 // ValidateSelfClient validates the client parameters for a client of the running chain
 // This function is only used to validate the client state the counterparty stores for this chain
 // Client must be in same revision as the executing chain
 func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientState) error {
-	if exported.Dymint != clientState.ClientType() {
-		return sdkerrors.Wrapf(types.ErrInvalidClient, "invalid client type. expected: %s, got: %s",
-			exported.Dymint, clientState.ClientType())
+	tmClient, ok := clientState.(*ibctmtypes.ClientState)
+	if !ok {
+		return sdkerrors.Wrapf(types.ErrInvalidClient, "client must be a Tendermint client, expected: %T, got: %T",
+			&ibctmtypes.ClientState{}, tmClient)
 	}
-	sc := ibcdtypes.NewSelfClient()
-	return sc.ValidateSelfClientState(ctx, k.stakingKeeper.UnbondingTime(ctx), clientState)
+
+	if !tmClient.FrozenHeight.IsZero() {
+		return types.ErrClientFrozen
+	}
+
+	if ctx.ChainID() != tmClient.ChainId {
+		return sdkerrors.Wrapf(types.ErrInvalidClient, "invalid chain-id. expected: %s, got: %s",
+			ctx.ChainID(), tmClient.ChainId)
+	}
+
+	revision := types.ParseChainID(ctx.ChainID())
+
+	// client must be in the same revision as executing chain
+	if tmClient.LatestHeight.RevisionNumber != revision {
+		return sdkerrors.Wrapf(types.ErrInvalidClient, "client is not in the same revision as the chain. expected revision: %d, got: %d",
+			tmClient.LatestHeight.RevisionNumber, revision)
+	}
+
+	selfHeight := types.NewHeight(revision, uint64(ctx.BlockHeight()))
+	if tmClient.LatestHeight.GTE(selfHeight) {
+		return sdkerrors.Wrapf(types.ErrInvalidClient, "client has LatestHeight %d greater than or equal to chain height %d",
+			tmClient.LatestHeight, selfHeight)
+	}
+
+	expectedProofSpecs := commitmenttypes.GetSDKSpecs()
+	if !reflect.DeepEqual(expectedProofSpecs, tmClient.ProofSpecs) {
+		return sdkerrors.Wrapf(types.ErrInvalidClient, "client has invalid proof specs. expected: %v got: %v",
+			expectedProofSpecs, tmClient.ProofSpecs)
+	}
+
+	if err := light.ValidateTrustLevel(tmClient.TrustLevel.ToTendermint()); err != nil {
+		return sdkerrors.Wrapf(types.ErrInvalidClient, "trust-level invalid: %v", err)
+	}
+
+	expectedUbdPeriod := k.stakingKeeper.UnbondingTime(ctx)
+	if expectedUbdPeriod != tmClient.UnbondingPeriod {
+		return sdkerrors.Wrapf(types.ErrInvalidClient, "invalid unbonding period. expected: %s, got: %s",
+			expectedUbdPeriod, tmClient.UnbondingPeriod)
+	}
+
+	if tmClient.UnbondingPeriod < tmClient.TrustingPeriod {
+		return sdkerrors.Wrapf(types.ErrInvalidClient, "unbonding period must be greater than trusting period. unbonding period (%d) < trusting period (%d)",
+			tmClient.UnbondingPeriod, tmClient.TrustingPeriod)
+	}
+
+	if len(tmClient.UpgradePath) != 0 {
+		// For now, SDK IBC implementation assumes that upgrade path (if defined) is defined by SDK upgrade module
+		expectedUpgradePath := []string{upgradetypes.StoreKey, upgradetypes.KeyUpgradedIBCState}
+		if !reflect.DeepEqual(expectedUpgradePath, tmClient.UpgradePath) {
+			return sdkerrors.Wrapf(types.ErrInvalidClient, "upgrade path must be the upgrade path defined by upgrade module. expected %v, got %v",
+				expectedUpgradePath, tmClient.UpgradePath)
+		}
+	}
+	return nil
 }
 
 // GetUpgradePlan executes the upgrade keeper GetUpgradePlan function.

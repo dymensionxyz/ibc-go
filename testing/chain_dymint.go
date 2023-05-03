@@ -148,7 +148,7 @@ func (chain *TestChainDymint) CurrentDMClientHeader() *ibcdmtypes.Header {
 
 // CreateDMClientHeader creates a DM header to update the DM client. Args are passed in to allow
 // caller flexibility to use params that differ from the chain.
-func (chain *TestChainDymint) CreateDMClientHeader(chainID string, blockHeight int64, trustedHeight clienttypes.Height, timestamp time.Time, tmValSet, tmTrustedVals *tmtypes.ValidatorSet, signers []tmtypes.PrivValidator) *ibcdmtypes.Header {
+func (chain *TestChainDymint) CreateDMClientHeader(chainID string, blockHeight int64, trustedHeight clienttypes.Height, timestamp time.Time, tmValSet, tmTrustedVals *tmtypes.ValidatorSet, signers map[string]tmtypes.PrivValidator) *ibcdmtypes.Header {
 	var (
 		valSet      *tmproto.ValidatorSet
 		trustedVals *tmproto.ValidatorSet
@@ -178,7 +178,15 @@ func (chain *TestChainDymint) CreateDMClientHeader(chainID string, blockHeight i
 	blockID := MakeBlockID(hhash, 3, tmhash.Sum([]byte("part_set")))
 	voteSet := tmtypes.NewVoteSet(chainID, blockHeight, 1, tmproto.PrecommitType, tmValSet)
 
-	commit, err := tmtypes.MakeCommit(blockID, blockHeight, 1, voteSet, signers, timestamp)
+	// MakeCommit expects a signer array in the same order as the validator array.
+	// Thus we iterate over the ordered validator set and construct a signer array
+	// from the signer map in the same order.
+	var signerArr []tmtypes.PrivValidator   //nolint:prealloc // using prealloc here would be needlessly complex
+	for _, v := range tmValSet.Validators { //nolint:staticcheck // need to check for nil validator set
+		signerArr = append(signerArr, signers[v.Address.String()])
+	}
+
+	commit, err := tmtypes.MakeCommit(blockID, blockHeight, 1, voteSet, signerArr, timestamp)
 	require.NoError(chain.TC.T, err)
 
 	signedHeader := &tmproto.SignedHeader{
@@ -187,7 +195,7 @@ func (chain *TestChainDymint) CreateDMClientHeader(chainID string, blockHeight i
 	}
 
 	// only one sequencer can sign
-	pv, ok := signers[0].(mock.PV)
+	pv, ok := signerArr[0].(mock.PV)
 	require.True(chain.TC.T, ok)
 	headerBytes, err := tmHeader.ToProto().Marshal()
 	require.NoError(chain.TC.T, err)

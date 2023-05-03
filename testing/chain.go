@@ -42,6 +42,32 @@ type SenderAccount struct {
 	SenderAccount authtypes.AccountI
 }
 
+type TestChainClientI interface {
+	GetContext() sdk.Context
+	NextBlock()
+	BeginBlock()
+	UpdateCurrentHeaderTime(t time.Time)
+	ClientConfigToState(ClientConfig ClientConfig) exported.ClientState
+	GetConsensusState() exported.ConsensusState
+	NewConfig() ClientConfig
+	GetSelfClientType() string
+	GetLastHeader() interface{}
+}
+
+func NewTestChainClient(chain *TestChain, chainConsensusType string) TestChainClientI {
+	// set the last header to the current header
+	// use nil trusted fields
+	switch chainConsensusType {
+	// case exported.Tendermint:
+	// 	return NewChainTendermintClient(chain)
+	case exported.Dymint:
+		return NewChainDymintClient(chain)
+	default:
+		panic(fmt.Sprintf("client type %s is not supported", chainConsensusType))
+	}
+
+}
+
 // TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI
 // header and the validators of the TestChain. It also contains a field called ChainID. This
 // is the clientID that *other* chains use to refer to this TestChain. The SenderAccount
@@ -74,6 +100,8 @@ type TestChain struct {
 	SenderAccount authtypes.AccountI
 
 	SenderAccounts []SenderAccount
+
+	TestChainClient TestChainClientI
 }
 
 // NewTestChainWithValSet initializes a new TestChain instance with the given validator set

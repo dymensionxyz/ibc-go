@@ -28,7 +28,7 @@ type Keeper struct {
 
 	cdc codec.BinaryCodec
 
-	ClientKeeper     clientkeeper.Keeper
+	ClientKeeper     clientkeeper.KeeperI
 	ConnectionKeeper connectionkeeper.Keeper
 	ChannelKeeper    channelkeeper.Keeper
 	PortKeeper       portkeeper.Keeper
