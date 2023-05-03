@@ -16,7 +16,8 @@ import (
 
 func (suite *DymintTestSuite) TestMisbehaviour() {
 	var dymintChain *ibctesting.TestChainDymint
-	signers := []tmtypes.PrivValidator{suite.privVal}
+	signers := make(map[string]tmtypes.PrivValidator)
+	signers[val.Address.String()] = privVal
 	heightMinus1 := clienttypes.NewHeight(0, height.RevisionHeight-1)
 
 	if suite.chainA.TestChainClient.GetSelfClientType() == exported.Dymint {
@@ -50,13 +51,15 @@ func (suite *DymintTestSuite) TestMisbehaviourValidateBasic() {
 	// Create alternative validator set with only altVal
 	altValSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{altVal})
 
-	signers := []tmtypes.PrivValidator{suite.privVal}
+	signers := make(map[string]tmtypes.PrivValidator)
+	signers[altVal.Address.String()] = altPrivVal
 
 	// Create signer array and ensure it is in same order as bothValSet
 	_, suiteVal := suite.valSet.GetByIndex(0)
 	bothSigners := ibctesting.CreateSortedSignerArray(altPrivVal, suite.privVal, altVal, suiteVal)
 
-	altSigners := []tmtypes.PrivValidator{altPrivVal}
+	altSigners := make(map[string]tmtypes.PrivValidator, 1)
+	altSigners[altVal.Address.String()] = altPrivVal
 
 	heightMinus1 := clienttypes.NewHeight(0, height.RevisionHeight-1)
 

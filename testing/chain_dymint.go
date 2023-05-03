@@ -4,7 +4,6 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
@@ -103,42 +102,42 @@ func (chain *TestChainDymint) NextBlock() {
 	chain.BeginBlock()
 }
 
-// ConstructUpdateDMClientHeader will construct a valid 01-dymint Header to update the
-// light client on the source chain.
-func ConstructUpdateDMClientHeaderWithTrustedHeight(counterparty *TestChain, clientID string, trustedHeight clienttypes.Height) (*ibcdmtypes.Header, error) {
-	header := counterparty.TestChainClient.GetLastHeader().(*ibcdmtypes.Header)
+// // ConstructUpdateDMClientHeader will construct a valid 01-dymint Header to update the
+// // light client on the source chain.
+// func ConstructUpdateDMClientHeaderWithTrustedHeight(counterparty *TestChain, clientID string, trustedHeight clienttypes.Height) (*ibcdmtypes.Header, error) {
+// 	header := counterparty.TestChainClient.GetLastHeader().(*ibcdmtypes.Header)
 
-	var (
-		tmTrustedVals *tmtypes.ValidatorSet
-		ok            bool
-	)
-	// Once we get TrustedHeight from client, we must query the validators from the counterparty chain
-	// If the LatestHeight == LastHeader.Height, then TrustedValidators are current validators
-	// If LatestHeight < LastHeader.Height, we can query the historical validator set from HistoricalInfo
-	if trustedHeight == header.GetHeight() {
-		tmTrustedVals = counterparty.Vals
-	} else {
-		// NOTE: We need to get validators from counterparty at height: trustedHeight+1
-		// since the last trusted validators for a header at height h
-		// is the NextValidators at h+1 committed to in header h by
-		// NextValidatorsHash
-		tmTrustedVals, ok = counterparty.GetValsAtHeight(int64(trustedHeight.RevisionHeight + 1))
-		if !ok {
-			return nil, sdkerrors.Wrapf(ibcdmtypes.ErrInvalidHeaderHeight, "could not retrieve trusted validators at trustedHeight: %d", trustedHeight)
-		}
-	}
-	// inject trusted fields into last header
-	// for now assume revision number is 0
-	header.TrustedHeight = trustedHeight
+// 	var (
+// 		tmTrustedVals *tmtypes.ValidatorSet
+// 		ok            bool
+// 	)
+// 	// Once we get TrustedHeight from client, we must query the validators from the counterparty chain
+// 	// If the LatestHeight == LastHeader.Height, then TrustedValidators are current validators
+// 	// If LatestHeight < LastHeader.Height, we can query the historical validator set from HistoricalInfo
+// 	if trustedHeight == header.GetHeight() {
+// 		tmTrustedVals = counterparty.Vals
+// 	} else {
+// 		// NOTE: We need to get validators from counterparty at height: trustedHeight+1
+// 		// since the last trusted validators for a header at height h
+// 		// is the NextValidators at h+1 committed to in header h by
+// 		// NextValidatorsHash
+// 		tmTrustedVals, ok = counterparty.GetValsAtHeight(int64(trustedHeight.RevisionHeight + 1))
+// 		if !ok {
+// 			return nil, sdkerrors.Wrapf(ibcdmtypes.ErrInvalidHeaderHeight, "could not retrieve trusted validators at trustedHeight: %d", trustedHeight)
+// 		}
+// 	}
+// 	// inject trusted fields into last header
+// 	// for now assume revision number is 0
+// 	header.TrustedHeight = trustedHeight
 
-	trustedVals, err := tmTrustedVals.ToProto()
-	if err != nil {
-		return nil, err
-	}
-	header.TrustedValidators = trustedVals
+// 	trustedVals, err := tmTrustedVals.ToProto()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	header.TrustedValidators = trustedVals
 
-	return header, nil
-}
+// 	return header, nil
+// }
 
 // CurrentDMClientHeader creates a DM header using the current header parameters
 // on the chain. The trusted fields in the header are set to nil.

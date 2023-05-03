@@ -49,6 +49,7 @@ type DymintTestSuite struct {
 	cdc        codec.Codec
 	privVal    tmtypes.PrivValidator
 	valSet     *tmtypes.ValidatorSet
+	signers    map[string]tmtypes.PrivValidator
 	valsHash   tmbytes.HexBytes
 	header     *ibctmtypes.Header
 	now        time.Time
@@ -66,6 +67,7 @@ func (suite *DymintTestSuite) SetupTest() {
 }
 
 func (suite *DymintTestSuite) SetupTestWithConsensusType(chainAConsensusType string, chainBConsensusType string) {
+	//FIXME
 	suite.Require().True(chainAConsensusType == exported.Dymint || chainBConsensusType == exported.Dymint)
 	suite.Require().True(chainAConsensusType == exported.Dymint || chainAConsensusType == exported.Tendermint)
 	suite.Require().True(chainBConsensusType == exported.Dymint || chainBConsensusType == exported.Tendermint)
@@ -98,15 +100,18 @@ func (suite *DymintTestSuite) SetupTestWithConsensusType(chainAConsensusType str
 	heightMinus1 := clienttypes.NewHeight(0, height.RevisionHeight-1)
 
 	val := tmtypes.NewValidator(pubKey, 10)
+	suite.signers = make(map[string]tmtypes.PrivValidator)
+	suite.signers[val.Address.String()] = suite.privVal
+
 	suite.valSet = tmtypes.NewValidatorSet([]*tmtypes.Validator{val})
 	suite.valsHash = suite.valSet.Hash()
 	if chainAConsensusType == exported.Tendermint {
 		chainBDymint := suite.chainB.TestChainClient.(*ibctesting.TestChainDymint)
-		suite.header = chainBDymint.CreateDMClientHeader(chainID, int64(height.RevisionHeight), heightMinus1, suite.now, suite.valSet, suite.valSet, []tmtypes.PrivValidator{suite.privVal})
+		suite.header = chainBDymint.CreateDMClientHeader(chainID, int64(height.RevisionHeight), heightMinus1, suite.now, suite.valSet, suite.valSet, suite.signers)
 	} else {
 		// chainA must be Dymint
 		chainADymint := suite.chainA.TestChainClient.(*ibctesting.TestChainDymint)
-		suite.header = chainADymint.CreateDMClientHeader(chainID, int64(height.RevisionHeight), heightMinus1, suite.now, suite.valSet, suite.valSet, []tmtypes.PrivValidator{suite.privVal})
+		suite.header = chainADymint.CreateDMClientHeader(chainID, int64(height.RevisionHeight), heightMinus1, suite.now, suite.valSet, suite.valSet, suite.signers)
 	}
 
 	suite.ctx = app.BaseApp.NewContext(checkTx, tmproto.Header{Height: 1, Time: suite.now})
@@ -116,12 +121,15 @@ func getSuiteSigners(suite *DymintTestSuite) []tmtypes.PrivValidator {
 	return []tmtypes.PrivValidator{suite.privVal}
 }
 
-func getBothSigners(suite *DymintTestSuite, altVal *tmtypes.Validator, altPrivVal tmtypes.PrivValidator) (*tmtypes.ValidatorSet, []tmtypes.PrivValidator) {
+func getBothSigners(suite *DymintTestSuite, altVal *tmtypes.Validator, altPrivVal tmtypes.PrivValidator) (*tmtypes.ValidatorSet, map[string]tmtypes.PrivValidator) {
 	// Create bothValSet with both suite validator and altVal. Would be valid update
 	bothValSet := tmtypes.NewValidatorSet(append(suite.valSet.Validators, altVal))
 	// Create signer array and ensure it is in same order as bothValSet
 	_, suiteVal := suite.valSet.GetByIndex(0)
-	bothSigners := ibctesting.CreateSortedSignerArray(altPrivVal, suite.privVal, altVal, suiteVal)
+	bothSigners := map[string]tmtypes.PrivValidator{
+		suiteVal.Address.String(): suite.privVal,
+		altVal.Address.String():   altPrivVal,
+	}
 	return bothValSet, bothSigners
 }
 
