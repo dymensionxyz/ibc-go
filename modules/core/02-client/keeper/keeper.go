@@ -26,7 +26,20 @@ import (
 // Keeper represents a type that grants read and write permissions to any client
 // state information
 
+type KeeperIForTests interface {
+	CreateClient(ctx sdk.Context, clientState exported.ClientState, consensusState exported.ConsensusState) (string, error)
+	ClientStore(ctx sdk.Context, clientID string) sdk.KVStore
+	SetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height, consensusState exported.ConsensusState)
+	// SetClientState(ctx types.Context, clientID string, clientState exported.ClientState)
+	GetLatestClientConsensusState(ctx sdk.Context, clientID string) (exported.ConsensusState, bool)
+}
 type KeeperI interface {
+	KeeperIForTests
+
+	ValidateSelfClient(ctx sdk.Context, clientState exported.ClientState) error
+	UpgradedConsensusState(context.Context, *types.QueryUpgradedConsensusStateRequest) (*types.QueryUpgradedConsensusStateResponse, error)
+	GetSelfConsensusState(ctx sdk.Context, height exported.Height) (exported.ConsensusState, error)
+
 	// ClientUnmarshaler interface
 	MustUnmarshalClientState([]byte) exported.ClientState
 	MustUnmarshalConsensusState([]byte) exported.ConsensusState
@@ -40,6 +53,9 @@ type KeeperI interface {
 	ClientStatus(c context.Context, req *types.QueryClientStatusRequest) (*types.QueryClientStatusResponse, error)
 	ClientParams(c context.Context, req *types.QueryClientParamsRequest) (*types.QueryClientParamsResponse, error)
 	UpgradedClientState(c context.Context, req *types.QueryUpgradedClientStateRequest) (*types.QueryUpgradedClientStateResponse, error)
+
+	// GetClientConsensusState(ctx sdk.Context, clientID string) (connection exported.ConsensusState, found bool)
+	GetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height) (exported.ConsensusState, bool)
 
 	//From genesis.go
 	GetAllGenesisClients(ctx sdk.Context) types.IdentifiedClientStates
@@ -70,6 +86,9 @@ type KeeperI interface {
 	//proposal.go
 	ClientUpdateProposal(ctx sdk.Context, p *types.ClientUpdateProposal) error
 	HandleUpgradeProposal(ctx sdk.Context, p *types.UpgradeProposal) error
+
+	//testing
+	MustMarshalClientState(clientState exported.ClientState) []byte
 }
 
 type Keeper struct {
