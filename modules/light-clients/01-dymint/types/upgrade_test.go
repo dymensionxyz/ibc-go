@@ -10,9 +10,7 @@ import (
 	ibctesting "github.com/cosmos/ibc-go/v5/testing"
 )
 
-var (
-	newChainId = "newChainId-1"
-)
+var newChainId = "newChainId-1"
 
 func (suite *DymintTestSuite) TestVerifyUpgrade() {
 	var (

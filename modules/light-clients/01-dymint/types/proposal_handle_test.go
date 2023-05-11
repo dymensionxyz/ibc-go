@@ -30,7 +30,7 @@ func (suite *DymintTestSuite) TestCheckSubstituteUpdateStateBasic() {
 		{
 			"non-matching substitute", func() {
 				suite.coordinator.SetupClients(substitutePath)
-				//substituteClientState = suite.chainA.GetClientState(substitutePath.EndpointA.ClientID)
+				// substituteClientState = suite.chainA.GetClientState(substitutePath.EndpointA.ClientID)
 				// switch substituteClientState.ClientType() {
 				// case exported.Dymint:
 				// 	dmClientState, ok := substituteClientState.(*types.ClientState)
@@ -55,7 +55,6 @@ func (suite *DymintTestSuite) TestCheckSubstituteUpdateStateBasic() {
 		tc := tc
 
 		suite.Run(tc.name, func() {
-
 			suite.SetupTest() // reset
 			subjectPath := ibctesting.NewPath(suite.chainA, suite.chainB)
 			substitutePath = ibctesting.NewPath(suite.chainA, suite.chainB)
@@ -277,7 +276,6 @@ func (suite *DymintTestSuite) TestCheckSubstituteAndUpdateState() {
 				suite.Require().Error(err)
 				suite.Require().Nil(updatedClient)
 			}
-
 		})
 	}
 }

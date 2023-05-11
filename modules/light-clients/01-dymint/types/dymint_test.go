@@ -62,12 +62,12 @@ type DymintTestSuite struct {
 }
 
 func (suite *DymintTestSuite) SetupTest() {
-	//suite.SetupTestWithConsensusType(exported.Dymint, exported.Tendermint)
+	// suite.SetupTestWithConsensusType(exported.Dymint, exported.Tendermint)
 	suite.SetupTestWithConsensusType(suite.chainAConsensusType, suite.chainBConsensusType)
 }
 
 func (suite *DymintTestSuite) SetupTestWithConsensusType(chainAConsensusType string, chainBConsensusType string) {
-	//FIXME
+	// FIXME
 	suite.Require().True(chainAConsensusType == exported.Dymint || chainBConsensusType == exported.Dymint)
 	suite.Require().True(chainAConsensusType == exported.Dymint || chainAConsensusType == exported.Tendermint)
 	suite.Require().True(chainBConsensusType == exported.Dymint || chainBConsensusType == exported.Tendermint)

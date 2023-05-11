@@ -131,7 +131,6 @@ func (h Header) ValidateCommit() (err error) {
 		}
 	} else {
 		return fmt.Errorf("proposer is not in the validator set (proposer: %x)", h.Header.ProposerAddress)
-
 	}
 
 	return nil

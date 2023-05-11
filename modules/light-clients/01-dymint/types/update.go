@@ -150,8 +150,8 @@ func _verifyNewHeaderAndVals(
 	untrustedHeader *tmtypes.SignedHeader,
 	trustingPeriod time.Duration,
 	now time.Time,
-	maxClockDrift time.Duration) error {
-
+	maxClockDrift time.Duration,
+) error {
 	if light.HeaderExpired(trustedHeader, trustingPeriod, now) {
 		return light.ErrOldHeaderExpired{At: trustedHeader.Time.Add(trustingPeriod), Now: now}
 	}
@@ -188,7 +188,6 @@ func checkValidity(
 	clientState *ClientState, consState *ConsensusState,
 	header *Header, currentTimestamp time.Time,
 ) error {
-
 	if err := header.ValidateCommit(); err != nil {
 		return err
 	}
