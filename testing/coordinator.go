@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosmos/ibc-go/v5/modules/core/exported"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
+
+	"github.com/cosmos/ibc-go/v5/modules/core/exported"
 )
 
 var (
