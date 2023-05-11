@@ -204,10 +204,8 @@ func (chain *TestChainDymint) CreateDMClientHeader(chainID string, blockHeight i
 	// Dymint check the header bytes signatures
 	signedHeader.Commit.Signatures[0].Signature = signedBytes
 
-	if tmValSet != nil {
-		valSet, err = tmValSet.ToProto()
-		require.NoError(chain.TC.T, err)
-	}
+	valSet, err = tmValSet.ToProto()
+	require.NoError(chain.TC.T, err)
 
 	if tmTrustedVals != nil {
 		trustedVals, err = tmTrustedVals.ToProto()

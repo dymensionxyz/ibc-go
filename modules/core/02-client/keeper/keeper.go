@@ -57,7 +57,7 @@ type KeeperI interface {
 	// GetClientConsensusState(ctx sdk.Context, clientID string) (connection exported.ConsensusState, found bool)
 	GetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height) (exported.ConsensusState, bool)
 
-	//From genesis.go
+	// From genesis.go
 	GetAllGenesisClients(ctx sdk.Context) types.IdentifiedClientStates
 	GetAllClientMetadata(ctx sdk.Context, genClients []types.IdentifiedClientState) ([]types.IdentifiedGenesisMetadata, error)
 	GetAllConsensusStates(ctx sdk.Context) types.ClientsConsensusStates
@@ -69,13 +69,13 @@ type KeeperI interface {
 	SetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height, consensusState exported.ConsensusState)
 	SetNextClientSequence(ctx sdk.Context, sequence uint64)
 
-	//msg_server.go
+	// msg_server.go
 	CheckMisbehaviourAndUpdateState(ctx sdk.Context, misbehaviour exported.Misbehaviour) error
 	UpgradeClient(ctx sdk.Context, clientID string, upgradedClient exported.ClientState, upgradedConsState exported.ConsensusState, proofUpgradeClient []byte, proofUpgradeConsState []byte) error
 	UpdateClient(ctx sdk.Context, clientID string, header exported.Header) error
 	CreateClient(ctx sdk.Context, clientState exported.ClientState, consensusState exported.ConsensusState) (string, error)
 
-	//abci.go
+	// abci.go
 	GetUpgradedClient(ctx sdk.Context, planHeight int64) ([]byte, bool)
 	GetUpgradePlan(ctx sdk.Context) (plan upgradetypes.Plan, havePlan bool)
 	SetUpgradedConsensusState(ctx sdk.Context, planHeight int64, bz []byte) error
@@ -83,11 +83,11 @@ type KeeperI interface {
 	// UpdateClient(ctx sdk.Context, clientID string, header exported.Header) error
 	MustMarshalConsensusState(consensusState exported.ConsensusState) []byte
 
-	//proposal.go
+	// proposal.go
 	ClientUpdateProposal(ctx sdk.Context, p *types.ClientUpdateProposal) error
 	HandleUpgradeProposal(ctx sdk.Context, p *types.UpgradeProposal) error
 
-	//testing
+	// testing
 	MustMarshalClientState(clientState exported.ClientState) []byte
 }
 

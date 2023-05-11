@@ -77,7 +77,7 @@ func NewCoordinatorWithConsensusType(t *testing.T, consensusTypes []string) *Coo
 			return nil
 		}
 
-		//Change to NewDymintTestChain
+		// Change to NewDymintTestChain
 		// add the consensusTypes to AllowedClients list
 		// clientKeeper := chains[chainID].App.GetIBCKeeper().ClientKeeper
 		// params := clientKeeper.GetParams(chains[chainID].GetContext())
