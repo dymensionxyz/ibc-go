@@ -49,6 +49,13 @@ type TestingApp interface {
 	LastBlockHeight() int64
 }
 
+func SetupTestingAppWithDymint() (TestingApp, map[string]json.RawMessage) {
+	db := dbm.NewMemDB()
+	encCdc := simapp.MakeTestEncodingConfig()
+	app := simapp.NewSimAppWithDymint(log.NewNopLogger(), db, nil, true, map[int64]bool{}, simapp.DefaultNodeHome, 5, encCdc, simapp.EmptyAppOptions{})
+	return app, simapp.NewDefaultGenesisState(encCdc.Marshaler)
+}
+
 func SetupTestingApp() (TestingApp, map[string]json.RawMessage) {
 	db := dbm.NewMemDB()
 	encCdc := simapp.MakeTestEncodingConfig()

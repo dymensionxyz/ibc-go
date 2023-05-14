@@ -8,7 +8,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/tendermint/tendermint/light"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	clienttypes "github.com/cosmos/ibc-go/v6/modules/core/02-client/types"
@@ -23,23 +22,19 @@ var _ exported.ClientState = (*ClientState)(nil)
 
 // NewClientState creates a new ClientState instance
 func NewClientState(
-	chainID string, trustLevel Fraction,
-	trustingPeriod, ubdPeriod, maxClockDrift time.Duration,
+	chainID string,
+	trustingPeriod, maxClockDrift time.Duration,
 	latestHeight clienttypes.Height, specs []*ics23.ProofSpec,
-	upgradePath []string, allowUpdateAfterExpiry, allowUpdateAfterMisbehaviour bool,
+	upgradePath []string,
 ) *ClientState {
 	return &ClientState{
-		ChainId:                      chainID,
-		TrustLevel:                   trustLevel,
-		TrustingPeriod:               trustingPeriod,
-		UnbondingPeriod:              ubdPeriod,
-		MaxClockDrift:                maxClockDrift,
-		LatestHeight:                 latestHeight,
-		FrozenHeight:                 clienttypes.ZeroHeight(),
-		ProofSpecs:                   specs,
-		UpgradePath:                  upgradePath,
-		AllowUpdateAfterExpiry:       allowUpdateAfterExpiry,
-		AllowUpdateAfterMisbehaviour: allowUpdateAfterMisbehaviour,
+		ChainId:        chainID,
+		TrustingPeriod: trustingPeriod,
+		MaxClockDrift:  maxClockDrift,
+		LatestHeight:   latestHeight,
+		FrozenHeight:   clienttypes.ZeroHeight(),
+		ProofSpecs:     specs,
+		UpgradePath:    upgradePath,
 	}
 }
 
@@ -48,9 +43,9 @@ func (cs ClientState) GetChainID() string {
 	return cs.ChainId
 }
 
-// ClientType is tendermint.
+// ClientType is dymint.
 func (cs ClientState) ClientType() string {
-	return exported.Tendermint
+	return exported.Dymint
 }
 
 // GetLatestHeight returns latest block height.
@@ -58,7 +53,7 @@ func (cs ClientState) GetLatestHeight() exported.Height {
 	return cs.LatestHeight
 }
 
-// Status returns the status of the tendermint client.
+// Status returns the status of the dymint client.
 // The client may be:
 // - Active: FrozenHeight is zero and client is not expired
 // - Frozen: Frozen Height is not zero
@@ -105,24 +100,18 @@ func (cs ClientState) Validate() error {
 
 	// NOTE: the value of tmtypes.MaxChainIDLen may change in the future.
 	// If this occurs, the code here must account for potential difference
-	// between the tendermint version being run by the counterparty chain
-	// and the tendermint version used by this light client.
+	// between the dymint version being run by the counterparty chain
+	// and the dymint version used by this light client.
 	// https://github.com/cosmos/ibc-go/issues/177
 	if len(cs.ChainId) > tmtypes.MaxChainIDLen {
 		return sdkerrors.Wrapf(ErrInvalidChainID, "chainID is too long; got: %d, max: %d", len(cs.ChainId), tmtypes.MaxChainIDLen)
 	}
 
-	if err := light.ValidateTrustLevel(cs.TrustLevel.ToTendermint()); err != nil {
-		return err
+	if cs.TrustingPeriod == 0 {
+		return sdkerrors.Wrap(ErrInvalidTrustingPeriod, "trusting period cannot be zero")
 	}
-	if cs.TrustingPeriod <= 0 {
-		return sdkerrors.Wrap(ErrInvalidTrustingPeriod, "trusting period must be greater than zero")
-	}
-	if cs.UnbondingPeriod <= 0 {
-		return sdkerrors.Wrap(ErrInvalidUnbondingPeriod, "unbonding period must be greater than zero")
-	}
-	if cs.MaxClockDrift <= 0 {
-		return sdkerrors.Wrap(ErrInvalidMaxClockDrift, "max clock drift must be greater than zero")
+	if cs.MaxClockDrift == 0 {
+		return sdkerrors.Wrap(ErrInvalidMaxClockDrift, "max clock drift cannot be zero")
 	}
 
 	// the latest height revision number must match the chain id revision number
@@ -131,13 +120,7 @@ func (cs ClientState) Validate() error {
 			"latest height revision number must match chain id revision number (%d != %d)", cs.LatestHeight.RevisionNumber, clienttypes.ParseChainID(cs.ChainId))
 	}
 	if cs.LatestHeight.RevisionHeight == 0 {
-		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "tendermint client's latest height revision height cannot be zero")
-	}
-	if cs.TrustingPeriod >= cs.UnbondingPeriod {
-		return sdkerrors.Wrapf(
-			ErrInvalidTrustingPeriod,
-			"trusting period (%s) should be < unbonding period (%s)", cs.TrustingPeriod, cs.UnbondingPeriod,
-		)
+		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "dymint client's latest height revision height cannot be zero")
 	}
 
 	if cs.ProofSpecs == nil {
@@ -170,15 +153,14 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 	// copy over all chain-specified fields
 	// and leave custom fields empty
 	return &ClientState{
-		ChainId:         cs.ChainId,
-		UnbondingPeriod: cs.UnbondingPeriod,
-		LatestHeight:    cs.LatestHeight,
-		ProofSpecs:      cs.ProofSpecs,
-		UpgradePath:     cs.UpgradePath,
+		ChainId:      cs.ChainId,
+		LatestHeight: cs.LatestHeight,
+		ProofSpecs:   cs.ProofSpecs,
+		UpgradePath:  cs.UpgradePath,
 	}
 }
 
-// Initialize will check that initial consensus state is a Tendermint consensus state
+// Initialize will check that initial consensus state is a Dymint consensus state
 // and will store ProcessedTime for initial consensus state as ctx.BlockTime()
 func (cs ClientState) Initialize(ctx sdk.Context, _ codec.BinaryCodec, clientStore sdk.KVStore, consState exported.ConsensusState) error {
 	if _, ok := consState.(*ConsensusState); !ok {
@@ -230,7 +212,7 @@ func (cs ClientState) VerifyClientState(
 }
 
 // VerifyClientConsensusState verifies a proof of the consensus state of the
-// Tendermint client stored on the target machine.
+// Dymint client stored on the target machine.
 func (cs ClientState) VerifyClientConsensusState(
 	store sdk.KVStore,
 	cdc codec.BinaryCodec,

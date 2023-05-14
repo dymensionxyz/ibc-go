@@ -12,7 +12,7 @@ import (
 
 // InitGenesis initializes the ibc client submodule's state from a provided genesis
 // state.
-func InitGenesis(ctx sdk.Context, k keeper.Keeper, gs types.GenesisState) {
+func InitGenesis(ctx sdk.Context, k keeper.KeeperI, gs types.GenesisState) {
 	k.SetParams(ctx, gs.Params)
 
 	// Set all client metadata first. This will allow client keeper to overwrite client and consensus state keys
@@ -54,7 +54,7 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, gs types.GenesisState) {
 // ExportGenesis returns the ibc client submodule's exported genesis.
 // NOTE: CreateLocalhost should always be false on export since a
 // created localhost will be included in the exported clients.
-func ExportGenesis(ctx sdk.Context, k keeper.Keeper) types.GenesisState {
+func ExportGenesis(ctx sdk.Context, k keeper.KeeperI) types.GenesisState {
 	genClients := k.GetAllGenesisClients(ctx)
 	clientsMetadata, err := k.GetAllClientMetadata(ctx, genClients)
 	if err != nil {

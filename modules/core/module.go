@@ -97,16 +97,27 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // AppModule implements an application module for the ibc module.
 type AppModule struct {
 	AppModuleBasic
-	keeper *keeper.Keeper
+	keeper            *keeper.Keeper
+	msgSrvInterceptor IBCMsgI
 
 	// create localhost by default
 	createLocalhost bool
 }
 
+// NewAppModuleWithMsgInterceptor creates a new AppModule object
+// with customized message server for IBC messages
+func NewAppModuleWithMsgInterceptor(k *keeper.Keeper, msgInterceptor IBCMsgI) AppModule {
+	return AppModule{
+		keeper:            k,
+		msgSrvInterceptor: msgInterceptor,
+	}
+}
+
 // NewAppModule creates a new AppModule object
 func NewAppModule(k *keeper.Keeper) AppModule {
 	return AppModule{
-		keeper: k,
+		keeper:            k,
+		msgSrvInterceptor: k,
 	}
 }
 
@@ -137,9 +148,10 @@ func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sd
 
 // RegisterServices registers module services.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	clienttypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
-	connectiontypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
-	channeltypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
+	clienttypes.RegisterMsgServer(cfg.MsgServer(), am.msgSrvInterceptor)
+	connectiontypes.RegisterMsgServer(cfg.MsgServer(), am.msgSrvInterceptor)
+	channeltypes.RegisterMsgServer(cfg.MsgServer(), am.msgSrvInterceptor)
+
 	types.RegisterQueryService(cfg.QueryServer(), am.keeper)
 
 	m := clientkeeper.NewMigrator(am.keeper.ClientKeeper)

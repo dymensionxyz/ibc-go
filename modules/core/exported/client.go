@@ -1,6 +1,8 @@
 package exported
 
 import (
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	proto "github.com/gogo/protobuf/proto"
@@ -18,6 +20,9 @@ const (
 
 	// Tendermint is used to indicate that the client uses the Tendermint Consensus Algorithm.
 	Tendermint string = "07-tendermint"
+
+	// Dymint is used to indicate that the client is a Dymension rollapp.
+	Dymint string = "01-dymint"
 
 	// Localhost is the client type for a localhost client. It is also used as the clientID
 	// for the localhost client.
@@ -240,4 +245,20 @@ type GenesisMetadata interface {
 // String returns the string representation of a client status.
 func (s Status) String() string {
 	return string(s)
+}
+
+// SelfClient is an interface to create the chains' self client logic
+type SelfClient interface {
+	ClientType() string
+
+	ValidateSelfClientState(
+		ctx sdk.Context,
+		expectedUbdPeriod time.Duration,
+		clientState ClientState,
+	) error
+
+	GetSelfConsensusStateFromBlocHeader(
+		cdc codec.BinaryCodec,
+		blockHeader []byte,
+	) (ConsensusState, error)
 }

@@ -33,7 +33,6 @@ app.UpgradeKeeper.SetUpgradeHandler("MigrateTraces",
         // transfer module consensus version has been bumped to 2
         return app.mm.RunMigrations(ctx, app.configurator, fromVM)
     })
-
 ```
 
 This is only necessary if there are denom traces in the store with incorrect trace information from previously received coins that had a slash in the base denom. However, it is recommended that any chain upgrading to support base denominations with slashes runs this code for safety.
