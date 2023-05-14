@@ -9,7 +9,7 @@ import (
 )
 
 // BeginBlocker updates an existing localhost client with the latest block height.
-func BeginBlocker(ctx sdk.Context, k keeper.Keeper) {
+func BeginBlocker(ctx sdk.Context, k keeper.KeeperI) {
 	plan, found := k.GetUpgradePlan(ctx)
 	if found {
 		// Once we are at the last block this chain will commit, set the upgraded consensus state

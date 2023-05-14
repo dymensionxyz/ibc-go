@@ -42,6 +42,32 @@ type SenderAccount struct {
 	SenderAccount authtypes.AccountI
 }
 
+type TestChainClientI interface {
+	GetContext() sdk.Context
+	NextBlock()
+	BeginBlock()
+	// UpdateCurrentHeaderTime(t time.Time)
+	// ClientConfigToState(ClientConfig ClientConfig) exported.ClientState
+	GetConsensusState() exported.ConsensusState
+	// NewConfig() ClientConfig
+	GetSelfClientType() string
+	// GetLastHeader() interface{}
+}
+
+// func NewTestChainClient(chain *TestChain, chainConsensusType string) TestChainClientI {
+// 	// set the last header to the current header
+// 	// use nil trusted fields
+// 	switch chainConsensusType {
+// 	// case exported.Tendermint:
+// 	// 	return NewChainTendermintClient(chain)
+// 	case exported.Dymint:
+// 		return NewChainDymintClient(chain)
+// 	default:
+// 		panic(fmt.Sprintf("client type %s is not supported", chainConsensusType))
+// 	}
+
+// }
+
 // TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI
 // header and the validators of the TestChain. It also contains a field called ChainID. This
 // is the clientID that *other* chains use to refer to this TestChain. The SenderAccount
@@ -74,6 +100,8 @@ type TestChain struct {
 	SenderAccount authtypes.AccountI
 
 	SenderAccounts []SenderAccount
+
+	TestChainClient TestChainClientI
 }
 
 // NewTestChainWithValSet initializes a new TestChain instance with the given validator set
@@ -92,6 +120,10 @@ type TestChain struct {
 // CONTRACT: Validator array must be provided in the order expected by Tendermint.
 // i.e. sorted first by power and then lexicographically by address.
 func NewTestChainWithValSet(t *testing.T, coord *Coordinator, chainID string, valSet *tmtypes.ValidatorSet, signers map[string]tmtypes.PrivValidator) *TestChain {
+	return newTestChainWithValSet(t, coord, chainID, valSet, signers, exported.Tendermint)
+}
+
+func newTestChainWithValSet(t *testing.T, coord *Coordinator, chainID string, valSet *tmtypes.ValidatorSet, signers map[string]tmtypes.PrivValidator, consensusType string) *TestChain {
 	genAccs := []authtypes.GenesisAccount{}
 	genBals := []banktypes.Balance{}
 	senderAccs := []SenderAccount{}
@@ -120,6 +152,9 @@ func NewTestChainWithValSet(t *testing.T, coord *Coordinator, chainID string, va
 		senderAccs = append(senderAccs, senderAcc)
 	}
 
+	if consensusType == exported.Dymint {
+		DefaultTestingAppInit = SetupTestingAppWithDymint
+	}
 	app := SetupWithGenesisValSet(t, valSet, genAccs, chainID, sdk.DefaultPowerReduction, genBals...)
 
 	// create current header and call begin block
@@ -160,6 +195,32 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) *TestChain {
 	// generate validators private/public key
 	var (
 		validatorsPerChain = 4
+		validators         []*tmtypes.Validator
+		signersByAddress   = make(map[string]tmtypes.PrivValidator, validatorsPerChain)
+	)
+
+	for i := 0; i < validatorsPerChain; i++ {
+		privVal := mock.NewPV()
+		pubKey, err := privVal.GetPubKey()
+		require.NoError(t, err)
+		validators = append(validators, tmtypes.NewValidator(pubKey, 1))
+		signersByAddress[pubKey.Address().String()] = privVal
+	}
+
+	// construct validator set;
+	// Note that the validators are sorted by voting power
+	// or, if equal, by address lexical order
+	valSet := tmtypes.NewValidatorSet(validators)
+
+	return NewTestChainWithValSet(t, coord, chainID, valSet, signersByAddress)
+}
+
+// NewTestChain initializes a new test chain with a default of 4 validators
+// Use this function if the tests do not need custom control over the validator set
+func NewDymintTestChain(t *testing.T, coord *Coordinator, chainID string) *TestChain {
+	// generate validators private/public key
+	var (
+		validatorsPerChain = 1
 		validators         []*tmtypes.Validator
 		signersByAddress   = make(map[string]tmtypes.PrivValidator, validatorsPerChain)
 	)
@@ -383,6 +444,10 @@ func (chain *TestChain) GetAcknowledgement(packet exported.PacketI) []byte {
 // GetPrefix returns the prefix for used by a chain in connection creation
 func (chain *TestChain) GetPrefix() commitmenttypes.MerklePrefix {
 	return commitmenttypes.NewMerklePrefix(chain.App.GetIBCKeeper().ConnectionKeeper.GetCommitmentPrefix().Bytes())
+}
+
+func (chain *TestChain) GetSelfClientType() string {
+	return exported.Tendermint
 }
 
 // ConstructUpdateTMClientHeader will construct a valid 07-tendermint Header to update the

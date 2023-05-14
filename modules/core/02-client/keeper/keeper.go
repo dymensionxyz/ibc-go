@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -24,6 +25,72 @@ import (
 
 // Keeper represents a type that grants read and write permissions to any client
 // state information
+
+type KeeperIForTests interface {
+	CreateClient(ctx sdk.Context, clientState exported.ClientState, consensusState exported.ConsensusState) (string, error)
+	ClientStore(ctx sdk.Context, clientID string) sdk.KVStore
+	SetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height, consensusState exported.ConsensusState)
+	// SetClientState(ctx types.Context, clientID string, clientState exported.ClientState)
+	GetLatestClientConsensusState(ctx sdk.Context, clientID string) (exported.ConsensusState, bool)
+}
+type KeeperI interface {
+	KeeperIForTests
+
+	ValidateSelfClient(ctx sdk.Context, clientState exported.ClientState) error
+	UpgradedConsensusState(context.Context, *types.QueryUpgradedConsensusStateRequest) (*types.QueryUpgradedConsensusStateResponse, error)
+	GetSelfConsensusState(ctx sdk.Context, height exported.Height) (exported.ConsensusState, error)
+
+	// ClientUnmarshaler interface
+	MustUnmarshalClientState([]byte) exported.ClientState
+	MustUnmarshalConsensusState([]byte) exported.ConsensusState
+
+	// ClientState implements the IBC QueryServer interface
+	ClientState(c context.Context, req *types.QueryClientStateRequest) (*types.QueryClientStateResponse, error)
+	ClientStates(c context.Context, req *types.QueryClientStatesRequest) (*types.QueryClientStatesResponse, error)
+	ConsensusState(c context.Context, req *types.QueryConsensusStateRequest) (*types.QueryConsensusStateResponse, error)
+	ConsensusStates(c context.Context, req *types.QueryConsensusStatesRequest) (*types.QueryConsensusStatesResponse, error)
+	ConsensusStateHeights(c context.Context, req *types.QueryConsensusStateHeightsRequest) (*types.QueryConsensusStateHeightsResponse, error)
+	ClientStatus(c context.Context, req *types.QueryClientStatusRequest) (*types.QueryClientStatusResponse, error)
+	ClientParams(c context.Context, req *types.QueryClientParamsRequest) (*types.QueryClientParamsResponse, error)
+	UpgradedClientState(c context.Context, req *types.QueryUpgradedClientStateRequest) (*types.QueryUpgradedClientStateResponse, error)
+
+	// GetClientConsensusState(ctx sdk.Context, clientID string) (connection exported.ConsensusState, found bool)
+	GetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height) (exported.ConsensusState, bool)
+
+	// From genesis.go
+	GetAllGenesisClients(ctx sdk.Context) types.IdentifiedClientStates
+	GetAllClientMetadata(ctx sdk.Context, genClients []types.IdentifiedClientState) ([]types.IdentifiedGenesisMetadata, error)
+	GetAllConsensusStates(ctx sdk.Context) types.ClientsConsensusStates
+	GetParams(ctx sdk.Context) types.Params
+	SetParams(ctx sdk.Context, params types.Params)
+	GetNextClientSequence(ctx sdk.Context) uint64
+	SetAllClientMetadata(ctx sdk.Context, genMetadata []types.IdentifiedGenesisMetadata)
+	SetClientState(ctx sdk.Context, clientID string, clientState exported.ClientState)
+	SetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height, consensusState exported.ConsensusState)
+	SetNextClientSequence(ctx sdk.Context, sequence uint64)
+
+	// msg_server.go
+	CheckMisbehaviourAndUpdateState(ctx sdk.Context, misbehaviour exported.Misbehaviour) error
+	UpgradeClient(ctx sdk.Context, clientID string, upgradedClient exported.ClientState, upgradedConsState exported.ConsensusState, proofUpgradeClient []byte, proofUpgradeConsState []byte) error
+	UpdateClient(ctx sdk.Context, clientID string, header exported.Header) error
+	CreateClient(ctx sdk.Context, clientState exported.ClientState, consensusState exported.ConsensusState) (string, error)
+
+	// abci.go
+	GetUpgradedClient(ctx sdk.Context, planHeight int64) ([]byte, bool)
+	GetUpgradePlan(ctx sdk.Context) (plan upgradetypes.Plan, havePlan bool)
+	SetUpgradedConsensusState(ctx sdk.Context, planHeight int64, bz []byte) error
+	GetClientState(ctx sdk.Context, clientID string) (exported.ClientState, bool)
+	// UpdateClient(ctx sdk.Context, clientID string, header exported.Header) error
+	MustMarshalConsensusState(consensusState exported.ConsensusState) []byte
+
+	// proposal.go
+	ClientUpdateProposal(ctx sdk.Context, p *types.ClientUpdateProposal) error
+	HandleUpgradeProposal(ctx sdk.Context, p *types.UpgradeProposal) error
+
+	// testing
+	MustMarshalClientState(clientState exported.ClientState) []byte
+}
+
 type Keeper struct {
 	storeKey      storetypes.StoreKey
 	cdc           codec.BinaryCodec

@@ -158,5 +158,6 @@ replace (
 	// dragonberry replace for ics23
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
 
+	// protocol buffers replace
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 )

@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"errors"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	clientkeeper "github.com/cosmos/ibc-go/v5/modules/core/02-client/keeper"
@@ -23,7 +25,13 @@ func NewMigrator(keeper Keeper) Migrator {
 // - prunes expired tendermint consensus states
 // - adds ProcessedHeight and Iteration keys for unexpired tendermint consensus states
 func (m Migrator) Migrate1to2(ctx sdk.Context) error {
-	clientMigrator := clientkeeper.NewMigrator(m.keeper.ClientKeeper)
+
+	//FIXME: support different kinds of clients
+	cl, ok := m.keeper.ClientKeeper.(clientkeeper.Keeper)
+	if !ok {
+		return errors.New("client keeper is not a keeper.Keeper")
+	}
+	clientMigrator := clientkeeper.NewMigrator(cl)
 	if err := clientMigrator.Migrate1to2(ctx); err != nil {
 		return err
 	}

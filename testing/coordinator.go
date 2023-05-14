@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
+
+	"github.com/cosmos/ibc-go/v5/modules/core/exported"
 )
 
 var (
@@ -25,6 +27,19 @@ type Coordinator struct {
 	Chains      map[string]*TestChain
 }
 
+// UniqueStringLists returns a list without dupicates
+func StringSliceRemoveDuplicates(stringSlice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range stringSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
 // NewCoordinator initializes Coordinator with N TestChain's
 func NewCoordinator(t *testing.T, n int) *Coordinator {
 	chains := make(map[string]*TestChain)
@@ -36,6 +51,40 @@ func NewCoordinator(t *testing.T, n int) *Coordinator {
 	for i := 1; i <= n; i++ {
 		chainID := GetChainID(i)
 		chains[chainID] = NewTestChain(t, coord, chainID)
+	}
+	coord.Chains = chains
+
+	return coord
+}
+
+// NewCoordinatorWithConsensusType initializes Coordinator with len(consensusTypes) TestChain's
+// where the self client type of chain i is consensusTypes[i]
+func NewCoordinatorWithConsensusType(t *testing.T, consensusTypes []string) *Coordinator {
+	chains := make(map[string]*TestChain)
+	coord := &Coordinator{
+		T:           t,
+		CurrentTime: globalStartTime,
+	}
+
+	for i, consensusType := range consensusTypes {
+		chainID := GetChainID(i + 1)
+
+		switch consensusType {
+		case exported.Dymint:
+			chains[chainID] = NewDymintTestChain(t, coord, chainID)
+		case exported.Tendermint:
+			chains[chainID] = NewTestChain(t, coord, chainID)
+		default:
+			return nil
+		}
+
+		// Change to NewDymintTestChain
+		// add the consensusTypes to AllowedClients list
+		// clientKeeper := chains[chainID].App.GetIBCKeeper().ClientKeeper
+		// params := clientKeeper.GetParams(chains[chainID].GetContext())
+		// clientKeeper.SetParams(chains[chainID].GetContext(), clienttypes.NewParams(
+		// 	StringSliceRemoveDuplicates(append(params.AllowedClients, consensusTypes...))...,
+		// ))
 	}
 	coord.Chains = chains
 
