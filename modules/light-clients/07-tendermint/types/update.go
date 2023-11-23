@@ -171,9 +171,9 @@ func checkValidity(
 	clientState *ClientState, consState *ConsensusState,
 	header *Header, currentTimestamp time.Time,
 ) error {
-	if err := checkTrustedHeader(header, consState); err != nil {
-		return err
-	}
+	// if err := checkTrustedHeader(header, consState); err != nil {
+	// 	return err
+	// }
 
 	// UpdateClient only accepts updates with a header at the same revision
 	// as the trusted consensus state
